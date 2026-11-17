@@ -18,17 +18,23 @@ package com.example.chatapp.appfunctions
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Builds a message preview card with the A2UI Basic Catalog. */
+/**
+ * Builds a message preview card with the A2UI Basic Catalog.
+ *
+ * The message is an editable text field bound to the surface's data model. The Send button's action
+ * context refers to that path, so the host sends the text as it is when the user taps Send.
+ */
 internal object MessageCardA2uiBuilder {
     private const val VERSION = "v0.9"
+    private const val MESSAGE_BODY_PATH = "/messageBody"
     private const val BASIC_CATALOG_ID = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
 
     /**
      * Builds the A2UI messages for a card.
      *
-     * @param endpointValue The identifier of the recipient, sent back with button actions.
+     * @param endpointValue The identifier of the recipient, sent back with the Send action.
      * @param displayName The name of the recipient.
-     * @param messageBody The message to preview.
+     * @param messageBody The initial text of the message, which the user can edit.
      * @return A JSON array of A2UI messages.
      */
     fun build(
@@ -40,7 +46,7 @@ internal object MessageCardA2uiBuilder {
         val actionContext =
             JSONObject()
                 .put("endpointValue", endpointValue)
-                .put("messageBody", messageBody)
+                .put("messageBody", JSONObject().put("path", MESSAGE_BODY_PATH))
 
         val components =
             JSONArray()
@@ -56,14 +62,17 @@ internal object MessageCardA2uiBuilder {
                 .put(text("recipient", displayName, "h4"))
                 .put(text("app", "New message in ChatApp", "caption"))
                 .put(component("divider", "Divider"))
-                .put(text("body", messageBody, "body"))
+                .put(
+                    component("body", "TextField")
+                        .put("label", "Message")
+                        .put("variant", "longText")
+                        .put("value", JSONObject().put("path", MESSAGE_BODY_PATH)),
+                )
                 .put(
                     component("actions", "Row")
                         .put("justify", "end")
-                        .put("children", JSONArray().put("edit").put("send")),
+                        .put("children", JSONArray().put("send")),
                 )
-                .put(text("edit_label", "Edit", "body"))
-                .put(button("edit", "edit_label", "borderless", "edit_message", actionContext))
                 .put(text("send_label", "Send", "body"))
                 .put(button("send", "send_label", "primary", "send_message", actionContext))
 
@@ -82,6 +91,16 @@ internal object MessageCardA2uiBuilder {
                                 .put("agentDisplayName", "ChatApp"),
                         ),
                 )
+        val updateDataModel =
+            JSONObject()
+                .put("version", VERSION)
+                .put(
+                    "updateDataModel",
+                    JSONObject()
+                        .put("surfaceId", surfaceId)
+                        .put("path", "/")
+                        .put("value", JSONObject().put("messageBody", messageBody)),
+                )
         val updateComponents =
             JSONObject()
                 .put("version", VERSION)
@@ -91,7 +110,7 @@ internal object MessageCardA2uiBuilder {
                         .put("surfaceId", surfaceId)
                         .put("components", components),
                 )
-        return JSONArray().put(createSurface).put(updateComponents).toString()
+        return JSONArray().put(createSurface).put(updateDataModel).put(updateComponents).toString()
     }
 
     private fun component(
