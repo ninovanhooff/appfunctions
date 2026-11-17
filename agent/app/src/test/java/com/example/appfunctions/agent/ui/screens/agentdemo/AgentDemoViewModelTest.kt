@@ -28,6 +28,7 @@ import com.example.appfunctions.agent.domain.AgentOrchestrator
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.LlmProvider
 import com.example.appfunctions.agent.domain.LlmProviderFactory
+import com.example.appfunctions.agent.domain.a2ui.HandleA2uiActionUseCase
 import com.example.appfunctions.agent.domain.appfunction.GetAppFunctionsParams
 import com.example.appfunctions.agent.domain.appfunction.GetAppFunctionsUseCase
 import com.example.appfunctions.agent.domain.appfunction.GetInstalledAppsUseCase
@@ -72,6 +73,7 @@ class AgentDemoViewModelTest {
     private lateinit var consumePendingIntentUseCase: ConsumePendingIntentUseCase
     private lateinit var getInstalledAppsUseCase: GetInstalledAppsUseCase
     private lateinit var getAppFunctionsUseCase: GetAppFunctionsUseCase
+    private lateinit var handleA2uiActionUseCase: HandleA2uiActionUseCase
 
     private lateinit var viewModel: AgentDemoViewModel
 
@@ -102,6 +104,7 @@ class AgentDemoViewModelTest {
         consumePendingIntentUseCase = mockk(relaxed = true)
         getInstalledAppsUseCase = mockk()
         getAppFunctionsUseCase = mockk()
+        handleA2uiActionUseCase = mockk()
 
         every { getInstalledAppsUseCase() } returns emptyList()
         every {
@@ -140,6 +143,7 @@ class AgentDemoViewModelTest {
             consumePendingIntentUseCase,
             getInstalledAppsUseCase,
             getAppFunctionsUseCase,
+            handleA2uiActionUseCase,
         ).also { viewModelStore.put("AgentDemoViewModel", it) }
 
     @Test

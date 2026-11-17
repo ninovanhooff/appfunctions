@@ -28,6 +28,7 @@ import androidx.appfunctions.metadata.AppFunctionPackageMetadata
 import androidx.test.core.app.ApplicationProvider
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.SettingsRepository
+import com.example.appfunctions.agent.domain.a2ui.HandleA2uiActionUseCase
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.ConvertInputToAppFunctionDataUseCase
 import com.example.appfunctions.agent.domain.appfunction.ExecuteAppFunctionUseCase
@@ -69,6 +70,7 @@ class DebuggingViewModelTest {
     private lateinit var mockConvertInputToAppFunctionDataUseCase:
         ConvertInputToAppFunctionDataUseCase
     private lateinit var mockExecuteAppFunctionUseCase: ExecuteAppFunctionUseCase
+    private lateinit var mockHandleA2uiActionUseCase: HandleA2uiActionUseCase
     private lateinit var mockGetInstalledAppsUseCase: GetInstalledAppsUseCase
     private lateinit var mockTroubleshootAppUseCase: TroubleshootAppUseCase
     private lateinit var mockLaunchPendingIntentUseCase: LaunchPendingIntentUseCase
@@ -83,6 +85,7 @@ class DebuggingViewModelTest {
         mockGetAppFunctionStatesUseCase = mockk()
         mockConvertInputToAppFunctionDataUseCase = mockk()
         mockExecuteAppFunctionUseCase = mockk()
+        mockHandleA2uiActionUseCase = mockk()
         mockGetInstalledAppsUseCase = mockk()
         mockTroubleshootAppUseCase = mockk()
         mockLaunchPendingIntentUseCase = mockk()
@@ -130,6 +133,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -188,6 +192,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -241,6 +246,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -279,6 +285,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -317,6 +324,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -363,6 +371,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -407,6 +416,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,
@@ -486,6 +496,7 @@ class DebuggingViewModelTest {
                     mockGetAppFunctionStatesUseCase,
                     mockConvertInputToAppFunctionDataUseCase,
                     mockExecuteAppFunctionUseCase,
+                    mockHandleA2uiActionUseCase,
                     mockGetInstalledAppsUseCase,
                     mockTroubleshootAppUseCase,
                     mockLaunchPendingIntentUseCase,

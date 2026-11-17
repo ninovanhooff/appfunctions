@@ -72,6 +72,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -129,6 +130,7 @@ import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.ui.components.A2uiResourceRenderer
+import com.example.appfunctions.agent.ui.components.LocalA2uiActionHandler
 import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMenu
 import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
@@ -138,7 +140,11 @@ import kotlinx.coroutines.launch
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    AgentDemoContent(uiState = uiState, onEvent = viewModel::onEvent)
+    CompositionLocalProvider(
+        LocalA2uiActionHandler provides { name, context -> viewModel.onA2uiAction(name, context) },
+    ) {
+        AgentDemoContent(uiState = uiState, onEvent = viewModel::onEvent)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
