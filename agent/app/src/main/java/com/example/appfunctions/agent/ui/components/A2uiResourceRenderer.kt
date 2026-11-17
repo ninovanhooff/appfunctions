@@ -42,6 +42,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -60,6 +61,8 @@ import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** The tallest a surface can be, which also gives lazy Basic Catalog lists bounded height. */
 private val MaxSurfaceHeight = 480.dp
@@ -68,7 +71,8 @@ private val MaxSurfaceHeight = 480.dp
  * Renders an A2UI resource returned by an AppFunction, as a host such as Gemini might.
  *
  * Only the A2UI Basic Catalog is supported. The renderer reports other catalogs as errors. User
- * actions are listed below the surface rather than sent anywhere.
+ * actions are listed below the surface, and also passed to [LocalA2uiActionHandler] when one is
+ * provided. The outcome it returns replaces the surface's content.
  *
  * @param content The content of the A2UI resource.
  * @param modifier The modifier to apply to the preview.
@@ -159,18 +163,32 @@ private fun A2uiSurfaces(payload: A2uiPayload) {
     val surfaces by processor.activeSurfaces.collectAsStateWithLifecycle()
     val events = remember(processor) { mutableStateListOf<String>() }
     val errors = remember(processor) { mutableStateListOf<String>() }
+    val actionHandler = LocalA2uiActionHandler.current
+    val currentActionHandler by rememberUpdatedState(actionHandler)
 
     LaunchedEffect(processor) {
+        val parser = A2uiMessageParser()
         launch(Dispatchers.Default) { processor.collectMessages() }
         launch(start = CoroutineStart.UNDISPATCHED) {
             processor.outboundEvents.collect { message ->
                 when (message) {
-                    is A2uiClientEventMessage -> events.add("${message.type} ${message.context}")
+                    is A2uiClientEventMessage -> {
+                        events.add("${message.type} ${message.context}")
+                        val handler = currentActionHandler
+                        if (handler != null) {
+                            // Don't block the collector while the action runs.
+                            launch {
+                                val outcome = handler(message.type, message.context)
+                                if (outcome != null) {
+                                    processor.processInput(parser, outcomeMessage(message.surfaceId, outcome))
+                                }
+                            }
+                        }
+                    }
                     is A2uiClientErrorMessage -> errors.add("${message.code}: ${message.message}")
                 }
             }
         }
-        val parser = A2uiMessageParser()
         payload.messages.forEach { processor.processInput(parser, it) }
     }
 
@@ -200,6 +218,31 @@ private fun A2uiSurfaces(payload: A2uiPayload) {
         )
     }
 }
+
+/** Builds an A2UI message that replaces the surface's card content with [outcome]. */
+private fun outcomeMessage(
+    surfaceId: String,
+    outcome: String,
+): String =
+    JSONObject()
+        .put("version", "v0.9")
+        .put(
+            "updateComponents",
+            JSONObject()
+                .put("surfaceId", surfaceId)
+                .put(
+                    "components",
+                    JSONArray()
+                        .put(JSONObject().put("id", "root").put("component", "Card").put("child", "outcome"))
+                        .put(
+                            JSONObject()
+                                .put("id", "outcome")
+                                .put("component", "Text")
+                                .put("text", outcome)
+                                .put("variant", "body"),
+                        ),
+                ),
+        ).toString()
 
 /**
  * Applies a brand color to primary elements only. The Connected Apps UI guidelines reserve brand

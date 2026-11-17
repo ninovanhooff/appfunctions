@@ -50,6 +50,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
+import com.example.appfunctions.agent.ui.components.LocalA2uiActionHandler
 import com.example.appfunctions.agent.ui.theme.AppFunctionsAgentTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,22 +78,26 @@ import com.example.appfunctions.agent.ui.theme.AppFunctionsAgentTheme
 fun DebuggingScreen(viewModel: DebuggingViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    DebuggingScreenContent(
-        uiState = uiState,
-        onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
-        onAppSelected = { viewModel.onAppSelected(it) },
-        onClearSelectedApp = { viewModel.onClearSelectedApp() },
-        onFunctionInputsChange = { functionId, inputs ->
-            viewModel.onFunctionInputsChange(functionId, inputs)
-        },
-        onInvoke = { viewModel.invokeFunction(it) },
-        onClearResult = { viewModel.clearResult() },
-        onFunctionExpandedChange = { functionId, expanded ->
-            viewModel.onFunctionExpandedChange(functionId, expanded)
-        },
-        onLaunchPendingIntent = { viewModel.launchPendingIntent(it) },
-        onTogglePin = { viewModel.onTogglePin(it) },
-    )
+    CompositionLocalProvider(
+        LocalA2uiActionHandler provides { name, context -> viewModel.onA2uiAction(name, context) },
+    ) {
+        DebuggingScreenContent(
+            uiState = uiState,
+            onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
+            onAppSelected = { viewModel.onAppSelected(it) },
+            onClearSelectedApp = { viewModel.onClearSelectedApp() },
+            onFunctionInputsChange = { functionId, inputs ->
+                viewModel.onFunctionInputsChange(functionId, inputs)
+            },
+            onInvoke = { viewModel.invokeFunction(it) },
+            onClearResult = { viewModel.clearResult() },
+            onFunctionExpandedChange = { functionId, expanded ->
+                viewModel.onFunctionExpandedChange(functionId, expanded)
+            },
+            onLaunchPendingIntent = { viewModel.launchPendingIntent(it) },
+            onTogglePin = { viewModel.onTogglePin(it) },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

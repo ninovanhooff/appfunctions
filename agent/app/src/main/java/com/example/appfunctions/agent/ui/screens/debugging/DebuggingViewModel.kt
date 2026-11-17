@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.SettingsRepository
+import com.example.appfunctions.agent.domain.appfunction.AppFunctionExceptionFormatter
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.ConvertInputToAppFunctionDataUseCase
 import com.example.appfunctions.agent.domain.appfunction.ExecuteAppFunctionResult
@@ -216,7 +217,58 @@ class DebuggingViewModel
             val currentSearchAppResultState = _uiState.value.searchAppResultState
             if (currentSearchAppResultState !is SearchAppResultState.FunctionsFoundState) return
 
-            val inputs = currentSearchAppResultState.functionInputs[function.id] ?: emptyMap()
+            invokeFunction(
+                function,
+                currentSearchAppResultState.functionInputs[function.id] ?: emptyMap(),
+            )
+        }
+
+        /**
+         * Handles an action from an A2UI surface. A `send_message` action invokes the app's
+         * `sendMessage` function with the recipient and message carried in the action context.
+         *
+         * @return Text describing the outcome to show in the surface, or null if the action isn't
+         *   handled.
+         */
+        suspend fun onA2uiAction(
+            name: String,
+            context: Map<String, Any?>,
+        ): String? {
+            if (name != A2UI_SEND_MESSAGE_ACTION) return null
+            val state = _uiState.value.searchAppResultState
+            if (state !is SearchAppResultState.FunctionsFoundState) return null
+            val packageName = state.executedFunction?.packageName ?: return null
+            val sendFunction =
+                state.functions.firstOrNull {
+                    it.packageName == packageName && it.id.endsWith(SEND_MESSAGE_FUNCTION)
+                } ?: return "No sendMessage function found in $packageName"
+            val endpointValue = context["endpointValue"] as? String
+            val messageBody = context["messageBody"] as? String
+            if (endpointValue == null || messageBody == null) return "Action is missing its message"
+
+            val parameters =
+                convertInputToAppFunctionDataUseCase(
+                    parameters = sendFunction.parameters,
+                    components = sendFunction.components,
+                    inputs = mapOf("endpointValue" to endpointValue, "messageBody" to messageBody),
+                ).getOrElse { return it.message ?: "Failed to convert input" }
+            return when (val result = executeAppFunctionUseCase(sendFunction, parameters)) {
+                is ExecuteAppFunctionResult.Data -> result.formattedJson.trim().removeSurrounding("\"")
+                is ExecuteAppFunctionResult.PendingIntentAction -> "Action required"
+                is ExecuteAppFunctionResult.Error ->
+                    AppFunctionExceptionFormatter.getAppFunctionException(result.exception)
+                        ?.let { AppFunctionExceptionFormatter.format(it, sendFunction.id) }
+                        ?: result.exception.message
+                        ?: "Unknown error"
+            }
+        }
+
+        private fun invokeFunction(
+            function: AppFunctionMetadata,
+            inputs: Map<String, Any>,
+        ) {
+            val currentSearchAppResultState = _uiState.value.searchAppResultState
+            if (currentSearchAppResultState !is SearchAppResultState.FunctionsFoundState) return
             viewModelScope.launch {
                 try {
                     val appFunctionDataResult =
@@ -382,5 +434,7 @@ class DebuggingViewModel
 
         private companion object {
             const val TAG = "DebuggingViewModel"
+            const val A2UI_SEND_MESSAGE_ACTION = "send_message"
+            const val SEND_MESSAGE_FUNCTION = "sendMessage"
         }
     }
