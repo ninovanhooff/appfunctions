@@ -55,6 +55,7 @@ import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.appfunctions.agent.R
+import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 import com.example.appfunctions.agent.domain.a2ui.A2uiPayload
 import com.example.appfunctions.agent.domain.a2ui.parseA2uiContent
 import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
@@ -180,7 +181,10 @@ private fun A2uiSurfaces(payload: A2uiPayload) {
                             launch {
                                 val outcome = handler(message.type, message.context)
                                 if (outcome != null) {
-                                    processor.processInput(parser, outcomeMessage(message.surfaceId, outcome))
+                                    processor.processInput(
+                                        parser,
+                                        outcomeMessage(message.surfaceId, outcome),
+                                    )
                                 }
                             }
                         }
@@ -222,27 +226,39 @@ private fun A2uiSurfaces(payload: A2uiPayload) {
 /** Builds an A2UI message that replaces the surface's card content with [outcome]. */
 private fun outcomeMessage(
     surfaceId: String,
-    outcome: String,
-): String =
-    JSONObject()
+    outcome: A2uiActionOutcome,
+): String {
+    val children = JSONArray().put("outcome_message")
+    val components =
+        JSONArray()
+            .put(JSONObject().put("id", "root").put("component", "Card").put("child", "outcome"))
+            .put(
+                JSONObject()
+                    .put("id", "outcome_message")
+                    .put("component", "Text")
+                    .put("text", outcome.message)
+                    .put("variant", "h4"),
+            )
+    if (outcome.body != null) {
+        children.put("outcome_body")
+        components.put(
+            JSONObject()
+                .put("id", "outcome_body")
+                .put("component", "Text")
+                .put("text", outcome.body)
+                .put("variant", "body"),
+        )
+    }
+    components.put(
+        JSONObject().put("id", "outcome").put("component", "Column").put("children", children),
+    )
+    return JSONObject()
         .put("version", "v0.9")
         .put(
             "updateComponents",
-            JSONObject()
-                .put("surfaceId", surfaceId)
-                .put(
-                    "components",
-                    JSONArray()
-                        .put(JSONObject().put("id", "root").put("component", "Card").put("child", "outcome"))
-                        .put(
-                            JSONObject()
-                                .put("id", "outcome")
-                                .put("component", "Text")
-                                .put("text", outcome)
-                                .put("variant", "body"),
-                        ),
-                ),
+            JSONObject().put("surfaceId", surfaceId).put("components", components),
         ).toString()
+}
 
 /**
  * Applies a brand color to primary elements only. The Connected Apps UI guidelines reserve brand

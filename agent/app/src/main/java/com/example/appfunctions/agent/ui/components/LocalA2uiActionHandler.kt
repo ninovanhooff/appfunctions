@@ -16,14 +16,15 @@
 package com.example.appfunctions.agent.ui.components
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 
 /**
  * Handles an action sent by a button on an A2UI surface, for example by calling an AppFunction.
  *
- * Receives the action name and its context. Returns text describing the outcome, which the
- * renderer shows in place of the surface, or null if the action isn't handled.
+ * Receives the action name and its context. Returns the outcome, which the renderer shows in place
+ * of the surface's card, or null if the action isn't handled.
  */
-typealias A2uiActionHandler = suspend (name: String, context: Map<String, Any?>) -> String?
+typealias A2uiActionHandler = suspend (name: String, context: Map<String, Any?>) -> A2uiActionOutcome?
 
 /** The handler for actions on A2UI surfaces, or null to only list them below the surface. */
 val LocalA2uiActionHandler = staticCompositionLocalOf<A2uiActionHandler?> { null }

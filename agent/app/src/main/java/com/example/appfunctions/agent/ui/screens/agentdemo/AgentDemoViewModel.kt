@@ -28,6 +28,7 @@ import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentOrchestrator
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.LlmProviderFactory
+import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 import com.example.appfunctions.agent.domain.a2ui.HandleA2uiActionUseCase
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.GetAppFunctionsParams
@@ -198,12 +199,12 @@ class AgentDemoViewModel
          * Handles an action from an A2UI surface in the chat by calling a function of the app that
          * the conversation targets, or of any connected app if it doesn't target one.
          *
-         * @return Text describing the outcome to show in the surface, or null if not handled.
+         * @return The outcome to show in the surface, or null if not handled.
          */
         suspend fun onA2uiAction(
             name: String,
             context: Map<String, Any?>,
-        ): String? {
+        ): A2uiActionOutcome? {
             val loaded = _uiState.value as? AgentUiState.Loaded ?: return null
             val targetPackage =
                 loaded.messages.lastOrNull { it.targetPackageName != null }?.targetPackageName

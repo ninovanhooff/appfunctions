@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.SettingsRepository
+import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 import com.example.appfunctions.agent.domain.a2ui.HandleA2uiActionUseCase
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.ConvertInputToAppFunctionDataUseCase
@@ -227,12 +228,12 @@ class DebuggingViewModel
         /**
          * Handles an action from an A2UI surface by calling a function of the app that returned it.
          *
-         * @return Text describing the outcome to show in the surface, or null if not handled.
+         * @return The outcome to show in the surface, or null if not handled.
          */
         suspend fun onA2uiAction(
             name: String,
             context: Map<String, Any?>,
-        ): String? {
+        ): A2uiActionOutcome? {
             val state = _uiState.value.searchAppResultState
             if (state !is SearchAppResultState.FunctionsFoundState) return null
             val packageName = state.executedFunction?.packageName ?: return null

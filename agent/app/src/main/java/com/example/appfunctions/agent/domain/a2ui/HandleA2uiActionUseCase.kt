@@ -27,6 +27,17 @@ const val A2UI_SEND_MESSAGE_ACTION = "send_message"
 
 private const val SEND_MESSAGE_FUNCTION = "sendMessage"
 
+/**
+ * What to show in an A2UI surface after an action ran.
+ *
+ * @property message A short description of the outcome, such as the confirmation or the error.
+ * @property body The content the action acted on, such as the message that was sent, if any.
+ */
+data class A2uiActionOutcome(
+    val message: String,
+    val body: String? = null,
+)
+
 /** Maps actions from A2UI surfaces to AppFunction calls. */
 class HandleA2uiActionUseCase
     @Inject
@@ -42,37 +53,44 @@ class HandleA2uiActionUseCase
          * @param context The action context.
          * @param functions The functions the action may call.
          * @param threadId Optional chat thread ID used for interaction attribution.
-         * @return Text describing the outcome to show in the surface, or null if the action isn't
-         *   handled.
+         * @return The outcome to show in the surface, or null if the action isn't handled.
          */
         suspend operator fun invoke(
             name: String,
             context: Map<String, Any?>,
             functions: List<AppFunctionMetadata>,
             threadId: String? = null,
-        ): String? {
+        ): A2uiActionOutcome? {
             if (name != A2UI_SEND_MESSAGE_ACTION) return null
             val sendFunction =
                 functions.firstOrNull { it.id.endsWith(SEND_MESSAGE_FUNCTION) }
-                    ?: return "No sendMessage function found"
+                    ?: return A2uiActionOutcome("No sendMessage function found")
             val endpointValue = context["endpointValue"] as? String
             val messageBody = context["messageBody"] as? String
-            if (endpointValue == null || messageBody == null) return "Action is missing its message"
+            if (endpointValue == null || messageBody == null) {
+                return A2uiActionOutcome("Action is missing its message")
+            }
 
             val parameters =
                 convertInputToAppFunctionDataUseCase(
                     parameters = sendFunction.parameters,
                     components = sendFunction.components,
                     inputs = mapOf("endpointValue" to endpointValue, "messageBody" to messageBody),
-                ).getOrElse { return it.message ?: "Failed to convert input" }
+                ).getOrElse { return A2uiActionOutcome(it.message ?: "Failed to convert input") }
             return when (val result = executeAppFunctionUseCase(sendFunction, parameters, threadId)) {
-                is ExecuteAppFunctionResult.Data -> result.formattedJson.trim().removeSurrounding("\"")
-                is ExecuteAppFunctionResult.PendingIntentAction -> "Action required"
+                is ExecuteAppFunctionResult.Data ->
+                    A2uiActionOutcome(
+                        message = result.formattedJson.trim().removeSurrounding("\""),
+                        body = messageBody,
+                    )
+                is ExecuteAppFunctionResult.PendingIntentAction -> A2uiActionOutcome("Action required")
                 is ExecuteAppFunctionResult.Error ->
-                    AppFunctionExceptionFormatter.getAppFunctionException(result.exception)
-                        ?.let { AppFunctionExceptionFormatter.format(it, sendFunction.id) }
-                        ?: result.exception.message
-                        ?: "Unknown error"
+                    A2uiActionOutcome(
+                        AppFunctionExceptionFormatter.getAppFunctionException(result.exception)
+                            ?.let { AppFunctionExceptionFormatter.format(it, sendFunction.id) }
+                            ?: result.exception.message
+                            ?: "Unknown error",
+                    )
             }
         }
     }
