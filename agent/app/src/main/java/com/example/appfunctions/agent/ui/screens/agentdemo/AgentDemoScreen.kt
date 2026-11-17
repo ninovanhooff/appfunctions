@@ -131,6 +131,7 @@ import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.ui.components.A2uiResourceRenderer
 import com.example.appfunctions.agent.ui.components.LocalA2uiActionHandler
+import com.example.appfunctions.agent.ui.components.LocalA2uiSessionCache
 import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMenu
 import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
@@ -142,6 +143,7 @@ fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
 
     CompositionLocalProvider(
         LocalA2uiActionHandler provides { name, context -> viewModel.onA2uiAction(name, context) },
+        LocalA2uiSessionCache provides viewModel.a2uiSessions,
     ) {
         AgentDemoContent(uiState = uiState, onEvent = viewModel::onEvent)
     }
@@ -860,9 +862,12 @@ fun MessageBubble(
                     )
                 }
             }
-            message.a2uiResources.forEach { resource ->
+            message.a2uiResources.forEachIndexed { index, resource ->
                 Spacer(modifier = Modifier.height(6.dp))
-                A2uiResourceRenderer(content = resource)
+                A2uiResourceRenderer(
+                    content = resource,
+                    sessionKey = "${message.messageId}#$index",
+                )
             }
         }
     }

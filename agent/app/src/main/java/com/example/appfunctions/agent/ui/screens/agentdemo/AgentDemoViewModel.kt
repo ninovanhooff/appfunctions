@@ -40,6 +40,7 @@ import com.example.appfunctions.agent.domain.chat.SendMessageUseCase
 import com.example.appfunctions.agent.domain.pendingintent.ConsumePendingIntentUseCase
 import com.example.appfunctions.agent.domain.pendingintent.LaunchPendingIntentUseCase
 import com.example.appfunctions.agent.domain.pendingintent.ObserveActivePendingIntentsUseCase
+import com.example.appfunctions.agent.ui.components.A2uiSessionCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,6 +74,9 @@ class AgentDemoViewModel
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<AgentUiState>(AgentUiState.Loading)
         val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
+
+        /** Keeps the state of A2UI cards in the chat, such as edited text, while they're scrolled away. */
+        val a2uiSessions = A2uiSessionCache(viewModelScope)
 
         private val installedApps = MutableStateFlow<List<AppInfo>>(emptyList())
         private val availableModels = MutableStateFlow<List<LlmModel>>(emptyList())

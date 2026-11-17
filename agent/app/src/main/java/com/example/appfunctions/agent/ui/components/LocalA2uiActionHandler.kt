@@ -28,3 +28,9 @@ typealias A2uiActionHandler = suspend (name: String, context: Map<String, Any?>)
 
 /** The handler for actions on A2UI surfaces, or null to only list them below the surface. */
 val LocalA2uiActionHandler = staticCompositionLocalOf<A2uiActionHandler?> { null }
+
+/**
+ * Keeps A2UI sessions beyond the composition, or null to end each session with its renderer. See
+ * [A2uiSessionCache].
+ */
+val LocalA2uiSessionCache = staticCompositionLocalOf<A2uiSessionCache?> { null }

@@ -15,12 +15,6 @@
  */
 package com.example.appfunctions.agent.ui.components
 
-import androidx.a2ui.compose.runtime.A2uiMessageParser
-import androidx.a2ui.compose.ui.A2uiMessageProcessor
-import androidx.a2ui.compose.ui.catalog.A2uiBasicCatalogV1
-import androidx.a2ui.model.processor.processInput
-import androidx.a2ui.model.protocol.A2uiClientErrorMessage
-import androidx.a2ui.model.protocol.A2uiClientEventMessage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,16 +27,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.a2ui.A2uiSurface
-import androidx.compose.material3.a2ui.catalog.MaterialA2uiBasicCatalogV1Defaults
-import androidx.compose.material3.a2ui.catalog.materialA2uiBasicCatalogV1
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -53,17 +44,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.example.appfunctions.agent.R
-import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 import com.example.appfunctions.agent.domain.a2ui.A2uiPayload
 import com.example.appfunctions.agent.domain.a2ui.parseA2uiContent
 import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
 
 /** The tallest a surface can be, which also gives lazy Basic Catalog lists bounded height. */
 private val MaxSurfaceHeight = 480.dp
@@ -77,11 +61,15 @@ private val MaxSurfaceHeight = 480.dp
  *
  * @param content The content of the A2UI resource.
  * @param modifier The modifier to apply to the preview.
+ * @param sessionKey Identifies the resource in the [LocalA2uiSessionCache]. With a key and a cache,
+ *   the resource keeps its state, such as edited text, when it leaves the composition. Without
+ *   either, its state is lost then.
  */
 @Composable
 fun A2uiResourceRenderer(
     content: String,
     modifier: Modifier = Modifier,
+    sessionKey: String? = null,
 ) {
     val payload = remember(content) { parseA2uiContent(content) }
     var showRawJson by rememberSaveable(content) { mutableStateOf(false) }
@@ -108,7 +96,7 @@ fun A2uiResourceRenderer(
                     color = MaterialTheme.colorScheme.error,
                 )
             } else {
-                A2uiSurfaces(payload)
+                A2uiSurfaces(payload, content, sessionKey)
             }
 
             TextButton(onClick = { showRawJson = !showRawJson }) {
@@ -134,67 +122,28 @@ fun A2uiResourceRenderer(
 }
 
 @Composable
-private fun A2uiSurfaces(payload: A2uiPayload) {
-    val context = LocalContext.current
-    val catalog =
-        remember(context) {
-            materialA2uiBasicCatalogV1(
-                image =
-                    MaterialA2uiBasicCatalogV1Defaults.image { url, description, scale, modifier, onError ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = description,
-                            contentScale = scale,
-                            modifier = modifier,
-                            onError = { state -> onError(state.result.throwable) },
-                        )
-                    },
-                video =
-                    MaterialA2uiBasicCatalogV1Defaults.video { _, modifier, _ ->
-                        Text(stringResource(R.string.a2ui_media_unsupported), modifier)
-                    },
-                audioPlayer =
-                    MaterialA2uiBasicCatalogV1Defaults.audioPlayer { _, _, modifier, _ ->
-                        Text(stringResource(R.string.a2ui_media_unsupported), modifier)
-                    },
-                functions = A2uiBasicCatalogV1.Functions(context),
-            )
-        }
-    val processor = remember(payload, catalog) { A2uiMessageProcessor(catalogs = listOf(catalog)) }
-    val surfaces by processor.activeSurfaces.collectAsStateWithLifecycle()
-    val events = remember(processor) { mutableStateListOf<String>() }
-    val errors = remember(processor) { mutableStateListOf<String>() }
-    val actionHandler = LocalA2uiActionHandler.current
-    val currentActionHandler by rememberUpdatedState(actionHandler)
-
-    LaunchedEffect(processor) {
-        val parser = A2uiMessageParser()
-        launch(Dispatchers.Default) { processor.collectMessages() }
-        launch(start = CoroutineStart.UNDISPATCHED) {
-            processor.outboundEvents.collect { message ->
-                when (message) {
-                    is A2uiClientEventMessage -> {
-                        events.add("${message.type} ${message.context}")
-                        val handler = currentActionHandler
-                        if (handler != null) {
-                            // Don't block the collector while the action runs.
-                            launch {
-                                val outcome = handler(message.type, message.context)
-                                if (outcome != null) {
-                                    processor.processInput(
-                                        parser,
-                                        outcomeMessage(message.surfaceId, outcome),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    is A2uiClientErrorMessage -> errors.add("${message.code}: ${message.message}")
-                }
+private fun A2uiSurfaces(
+    payload: A2uiPayload,
+    content: String,
+    sessionKey: String?,
+) {
+    val cache = LocalA2uiSessionCache.current
+    val context = LocalContext.current.applicationContext
+    val scope = rememberCoroutineScope()
+    val session =
+        remember(content, sessionKey, cache) {
+            if (cache != null && sessionKey != null) {
+                cache.getOrCreate(sessionKey, content, payload, context)
+            } else {
+                // The session ends with this composable, as there's nowhere to keep it.
+                A2uiSession(payload, context, scope)
             }
         }
-        payload.messages.forEach { processor.processInput(parser, it) }
-    }
+    val actionHandler = LocalA2uiActionHandler.current
+    SideEffect { session.actionHandler = actionHandler }
+    val surfaces by session.surfaces.collectAsStateWithLifecycle()
+    val events = session.events
+    val errors = session.errors
 
     MaterialTheme(colorScheme = brandedColorScheme(payload.primaryColor)) {
         surfaces.forEach { surface ->
@@ -221,43 +170,6 @@ private fun A2uiSurfaces(payload: A2uiPayload) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-/** Builds an A2UI message that replaces the surface's card content with [outcome]. */
-private fun outcomeMessage(
-    surfaceId: String,
-    outcome: A2uiActionOutcome,
-): String {
-    val children = JSONArray().put("outcome_message")
-    val components =
-        JSONArray()
-            .put(JSONObject().put("id", "root").put("component", "Card").put("child", "outcome"))
-            .put(
-                JSONObject()
-                    .put("id", "outcome_message")
-                    .put("component", "Text")
-                    .put("text", outcome.message)
-                    .put("variant", "h4"),
-            )
-    if (outcome.body != null) {
-        children.put("outcome_body")
-        components.put(
-            JSONObject()
-                .put("id", "outcome_body")
-                .put("component", "Text")
-                .put("text", outcome.body)
-                .put("variant", "body"),
-        )
-    }
-    components.put(
-        JSONObject().put("id", "outcome").put("component", "Column").put("children", children),
-    )
-    return JSONObject()
-        .put("version", "v0.9")
-        .put(
-            "updateComponents",
-            JSONObject().put("surfaceId", surfaceId).put("components", components),
-        ).toString()
 }
 
 /**
