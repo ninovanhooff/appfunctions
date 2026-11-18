@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.domain
 
 import android.app.PendingIntent
+import android.os.SystemClock
 import android.util.Log
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import com.example.appfunctions.agent.data.LlmProviderName
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -80,6 +82,11 @@ class AgentOrchestrator
 
         /** The current status of the agent. */
         val status: StateFlow<AgentStatus> = _status.asStateFlow()
+
+        private val _toolTimings = MutableStateFlow<List<ToolTiming>>(emptyList())
+
+        /** Durations of recent AppFunction calls, in memory only. */
+        val toolTimings: StateFlow<List<ToolTiming>> = _toolTimings.asStateFlow()
 
         /**
          * Observes messages for a specific thread and processes any pending agent responses. This
@@ -359,7 +366,9 @@ class AgentOrchestrator
         ): ExecuteToolCallsResult {
             val results = mutableListOf<ToolOutput>()
             for (toolCall in toolCalls) {
-                _status.value = AgentStatus.InvokingTool(toolCall.functionId, toolCall.packageName)
+                val startedAt = SystemClock.elapsedRealtime()
+                _status.value =
+                    AgentStatus.InvokingTool(toolCall.functionId, toolCall.packageName, startedAt)
 
                 val matchingTool =
                     tools.find {
@@ -405,14 +414,30 @@ class AgentOrchestrator
                     return ExecuteToolCallsResult.Error
                 }
 
-                when (
-                    val executionResult =
-                        executeAppFunctionUseCase(
-                            function = matchingTool,
-                            parameters = appFunctionDataResult.getOrThrow(),
-                            threadId = message.threadId,
-                        )
-                ) {
+                val executionResult =
+                    executeAppFunctionUseCase(
+                        function = matchingTool,
+                        parameters = appFunctionDataResult.getOrThrow(),
+                        threadId = message.threadId,
+                    )
+                val duration = SystemClock.elapsedRealtime() - startedAt
+                Log.d(TAG, "${toolCall.functionId} took $duration ms")
+                _status.value = AgentStatus.Thinking
+                _toolTimings.update { timings ->
+                    (
+                        timings +
+                            ToolTiming(
+                                id = UUID.randomUUID().toString(),
+                                threadId = message.threadId,
+                                functionId = toolCall.functionId,
+                                packageName = toolCall.packageName,
+                                durationMillis = duration,
+                                finishedAtMillis = System.currentTimeMillis(),
+                                succeeded = executionResult !is ExecuteAppFunctionResult.Error,
+                            )
+                    ).takeLast(MAX_TIMINGS)
+                }
+                when (executionResult) {
                     is ExecuteAppFunctionResult.Data -> {
                         results.add(
                             ToolOutput(
@@ -518,5 +543,6 @@ class AgentOrchestrator
 
         private companion object {
             const val TAG = "AgentOrchestrator"
+            const val MAX_TIMINGS = 100
         }
     }

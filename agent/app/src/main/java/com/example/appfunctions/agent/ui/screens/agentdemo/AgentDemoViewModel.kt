@@ -28,6 +28,7 @@ import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentOrchestrator
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.LlmProviderFactory
+import com.example.appfunctions.agent.domain.ToolTiming
 import com.example.appfunctions.agent.domain.a2ui.A2uiActionOutcome
 import com.example.appfunctions.agent.domain.a2ui.HandleA2uiActionUseCase
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
@@ -77,6 +78,9 @@ class AgentDemoViewModel
 
         /** Keeps the state of A2UI cards in the chat, such as edited text, while they're scrolled away. */
         val a2uiSessions = A2uiSessionCache(viewModelScope)
+
+        /** Durations of recent AppFunction calls, shown inline in the chat. */
+        val toolTimings: StateFlow<List<ToolTiming>> = agentOrchestrator.toolTimings
 
         private val installedApps = MutableStateFlow<List<AppInfo>>(emptyList())
         private val availableModels = MutableStateFlow<List<LlmModel>>(emptyList())

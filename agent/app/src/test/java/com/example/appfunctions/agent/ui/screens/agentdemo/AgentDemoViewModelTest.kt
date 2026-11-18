@@ -117,6 +117,7 @@ class AgentDemoViewModelTest {
         every { llmProviderFactory.getProvider(any()) } returns llmProvider
         coEvery { llmProvider.getAvailableModels(any()) } returns listOf(testModelFlash, testModelPro)
         every { agentOrchestrator.status } returns agentStatusFlow
+        every { agentOrchestrator.toolTimings } returns MutableStateFlow(emptyList())
         every { getChatHistoryUseCase(any()) } returns messagesFlow
         every { observeActivePendingIntentsUseCase() } returns activePendingActionIdsFlow
 

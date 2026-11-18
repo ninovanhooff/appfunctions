@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.ui.screens.agentdemo
 
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
@@ -129,6 +130,7 @@ import com.example.appfunctions.agent.data.db.entities.MessageProcessingStatus
 import com.example.appfunctions.agent.data.db.entities.MessageRole
 import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentStatus
+import com.example.appfunctions.agent.domain.ToolTiming
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.ui.components.A2uiResourceRenderer
 import com.example.appfunctions.agent.ui.components.LocalA2uiActionHandler
@@ -136,17 +138,24 @@ import com.example.appfunctions.agent.ui.components.LocalA2uiSessionCache
 import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMenu
 import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val toolTimings by viewModel.toolTimings.collectAsStateWithLifecycle()
 
     CompositionLocalProvider(
         LocalA2uiActionHandler provides { name, context -> viewModel.onA2uiAction(name, context) },
         LocalA2uiSessionCache provides viewModel.a2uiSessions,
     ) {
-        AgentDemoContent(uiState = uiState, onEvent = viewModel::onEvent)
+        AgentDemoContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            toolTimings = toolTimings,
+        )
     }
 }
 
@@ -156,6 +165,7 @@ fun AgentDemoContent(
     uiState: AgentUiState,
     onEvent: (AgentUiEvent) -> Unit,
     initialSidePanelVisible: Boolean = false,
+    toolTimings: List<ToolTiming> = emptyList(),
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager
@@ -185,6 +195,7 @@ fun AgentDemoContent(
                         scope = scope,
                         packageManager = packageManager,
                         initialSidePanelVisible = initialSidePanelVisible,
+                        toolTimings = toolTimings,
                     )
                 }
             }
@@ -235,6 +246,7 @@ fun AgentDemoLoadedScreen(
     scope: CoroutineScope,
     packageManager: PackageManager,
     initialSidePanelVisible: Boolean = false,
+    toolTimings: List<ToolTiming> = emptyList(),
 ) {
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
@@ -339,9 +351,17 @@ fun AgentDemoLoadedScreen(
                     val listState = rememberLazyListState()
                     // The list is reversed, so index 0 is the bottom. Scroll
                     // there whenever a new message (or the status row) shows.
-                    val newestMessageId = uiState.messages.lastOrNull()?.messageId
+                    val threadId = uiState.currentThread?.threadId
+                    val chatItems =
+                        remember(uiState.messages, toolTimings, threadId) {
+                            buildChatItems(
+                                uiState.messages,
+                                toolTimings.filter { it.threadId == threadId },
+                            )
+                        }
+                    val newestItemId = chatItems.firstOrNull()?.key
                     val showsStatus = uiState.status != AgentStatus.Idle
-                    LaunchedEffect(newestMessageId, showsStatus) {
+                    LaunchedEffect(newestItemId, showsStatus) {
                         listState.animateScrollToItem(0)
                     }
                     LazyColumn(
@@ -365,16 +385,25 @@ fun AgentDemoLoadedScreen(
                         }
 
                         items(
-                            items = uiState.messages.reversed(),
-                            key = { message -> message.messageId },
-                        ) { message ->
-                            MessageBubble(
-                                message = message,
-                                isValidAction =
-                                    message.pendingIntentId in uiState.activePendingActionIds,
-                                installedApps = uiState.installedApps,
-                                onConfirmAction = { onEvent(AgentUiEvent.OnConfirmAction(it)) },
-                            )
+                            items = chatItems,
+                            key = { item -> item.key },
+                        ) { item ->
+                            when (item) {
+                                is ChatItem.Message ->
+                                    MessageBubble(
+                                        message = item.message,
+                                        isValidAction =
+                                            item.message.pendingIntentId in
+                                                uiState.activePendingActionIds,
+                                        installedApps = uiState.installedApps,
+                                        onConfirmAction = {
+                                            onEvent(AgentUiEvent.OnConfirmAction(it))
+                                        },
+                                    )
+
+                                is ChatItem.Timing ->
+                                    ToolTimingRow(item.timing, packageManager)
+                            }
                         }
                     }
                 }
@@ -947,8 +976,18 @@ fun StatusIndicator(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(8.dp))
+                            var elapsed by remember(status) { mutableStateOf(0L) }
+                            LaunchedEffect(status) {
+                                while (true) {
+                                    elapsed =
+                                        SystemClock.elapsedRealtime() -
+                                        status.startedAtElapsedMillis
+                                    delay(100)
+                                }
+                            }
                             Text(
-                                stringResource(R.string.agent_demo_connecting),
+                                stringResource(R.string.agent_demo_connecting) +
+                                    " " + formatDuration(elapsed),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -1104,4 +1143,56 @@ fun formatMessageText(
             append(text.substring(lastIndex))
         }
     }
+}
+
+/** An entry in the chat list: a message, or the duration of an AppFunction call. */
+private sealed interface ChatItem {
+    val key: String
+    val timestamp: Long
+
+    data class Message(val message: MessageEntity) : ChatItem {
+        override val key = message.messageId
+        override val timestamp = message.timestamp
+    }
+
+    data class Timing(val timing: ToolTiming) : ChatItem {
+        override val key = "timing-${timing.id}"
+        override val timestamp = timing.finishedAtMillis
+    }
+}
+
+/** Merges messages and timings by time, newest first (the list is laid out reversed). */
+private fun buildChatItems(
+    messages: List<MessageEntity>,
+    timings: List<ToolTiming>,
+): List<ChatItem> =
+    (messages.map { ChatItem.Message(it) } + timings.map { ChatItem.Timing(it) })
+        .sortedByDescending { it.timestamp }
+
+private fun formatDuration(millis: Long): String = if (millis < 1000) "$millis ms" else String.format(Locale.US, "%.1f s", millis / 1000.0)
+
+@Composable
+private fun ToolTimingRow(
+    timing: ToolTiming,
+    packageManager: PackageManager,
+) {
+    val appName =
+        remember(timing.packageName) {
+            try {
+                packageManager
+                    .getApplicationLabel(packageManager.getApplicationInfo(timing.packageName, 0))
+                    .toString()
+            } catch (e: Exception) {
+                timing.packageName
+            }
+        }
+    Text(
+        text =
+            "$appName \u00b7 ${timing.functionId.substringAfterLast('#')} \u00b7 " +
+                formatDuration(timing.durationMillis) +
+                if (timing.succeeded) "" else " (failed)",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+    )
 }

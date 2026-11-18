@@ -21,5 +21,10 @@ sealed class AgentStatus {
 
     object Thinking : AgentStatus()
 
-    data class InvokingTool(val functionId: String, val packageName: String) : AgentStatus()
+    data class InvokingTool(
+        val functionId: String,
+        val packageName: String,
+        /** [android.os.SystemClock.elapsedRealtime] when the call started. */
+        val startedAtElapsedMillis: Long,
+    ) : AgentStatus()
 }
