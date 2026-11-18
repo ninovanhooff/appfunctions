@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -49,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -94,6 +96,8 @@ fun SettingsScreen(
         geminiApiKeyState = viewModel.geminiApiKeyState,
         serviceTier = uiState.serviceTier,
         onServiceTierSelected = viewModel::setServiceTier,
+        showDebugMessages = uiState.showDebugMessages,
+        onShowDebugMessagesChange = viewModel::setShowDebugMessages,
         onOpenLicenses = onOpenLicensesClick,
         onNavigateToConnectedApps = onNavigateToConnectedApps,
     )
@@ -106,6 +110,8 @@ fun SettingsScreenContent(
     geminiApiKeyState: TextFieldState,
     serviceTier: ServiceTier,
     onServiceTierSelected: (ServiceTier) -> Unit,
+    showDebugMessages: Boolean,
+    onShowDebugMessagesChange: (Boolean) -> Unit,
     onOpenLicenses: () -> Unit,
     onNavigateToConnectedApps: () -> Unit,
 ) {
@@ -209,6 +215,28 @@ fun SettingsScreenContent(
             ListItem(
                 headlineContent = {
                     Text(
+                        text = stringResource(id = R.string.settings_show_debug_messages),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                supportingContent = {
+                    Text(text = stringResource(id = R.string.settings_show_debug_messages_description))
+                },
+                trailingContent = {
+                    Switch(checked = showDebugMessages, onCheckedChange = null)
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier =
+                    Modifier.toggleable(
+                        value = showDebugMessages,
+                        role = Role.Switch,
+                        onValueChange = onShowDebugMessagesChange,
+                    ),
+            )
+
+            ListItem(
+                headlineContent = {
+                    Text(
                         text = stringResource(id = R.string.manage_connected_apps),
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -271,6 +299,8 @@ fun SettingsScreenPreview() {
         geminiApiKeyState = rememberTextFieldState("AIzaSy..."),
         serviceTier = ServiceTier.STANDARD,
         onServiceTierSelected = {},
+        showDebugMessages = false,
+        onShowDebugMessagesChange = {},
         onOpenLicenses = {},
         onNavigateToConnectedApps = {},
     )

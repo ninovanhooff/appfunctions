@@ -46,8 +46,13 @@ class SettingsViewModel
             combine(
                 settingsRepository.selectedProvider,
                 settingsRepository.serviceTier,
-            ) { provider, serviceTier ->
-                SettingsUiState(selectedProvider = provider, serviceTier = serviceTier)
+                settingsRepository.showDebugMessages,
+            ) { provider, serviceTier, showDebugMessages ->
+                SettingsUiState(
+                    selectedProvider = provider,
+                    serviceTier = serviceTier,
+                    showDebugMessages = showDebugMessages,
+                )
             }
                 .stateIn(
                     scope = viewModelScope,
@@ -74,6 +79,10 @@ class SettingsViewModel
 
         fun setSelectedProvider(provider: LlmProviderName) {
             viewModelScope.launch { settingsRepository.setSelectedProvider(provider) }
+        }
+
+        fun setShowDebugMessages(show: Boolean) {
+            viewModelScope.launch { settingsRepository.setShowDebugMessages(show) }
         }
 
         fun setServiceTier(tier: ServiceTier) {

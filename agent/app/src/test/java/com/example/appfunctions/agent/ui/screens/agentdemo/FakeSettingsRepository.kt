@@ -31,6 +31,13 @@ class FakeSettingsRepository : SettingsRepository {
     private val _serviceTier = MutableStateFlow(ServiceTier.STANDARD)
     override val serviceTier: Flow<ServiceTier> = _serviceTier
 
+    private val _showDebugMessages = MutableStateFlow(false)
+    override val showDebugMessages: Flow<Boolean> = _showDebugMessages
+
+    override suspend fun setShowDebugMessages(show: Boolean) {
+        _showDebugMessages.value = show
+    }
+
     private val _pinnedApps = MutableStateFlow<Set<String>>(emptySet())
     override val pinnedApps: Flow<Set<String>> = _pinnedApps
 

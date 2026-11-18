@@ -17,6 +17,7 @@ package com.example.appfunctions.agent.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -37,6 +38,7 @@ class DataStoreSettingsRepository
             val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
             val SELECTED_PROVIDER = stringPreferencesKey("selected_provider")
             val SERVICE_TIER = stringPreferencesKey("service_tier")
+            val SHOW_DEBUG_MESSAGES = booleanPreferencesKey("show_debug_messages")
             val PINNED_APPS = stringSetPreferencesKey("pinned_apps")
             val DISCONNECTED_APPS = stringSetPreferencesKey("disconnected_apps")
         }
@@ -64,6 +66,13 @@ class DataStoreSettingsRepository
                     ServiceTier.entries.find { it.name.equals(storedValue, ignoreCase = true) }
                 } ?: ServiceTier.PRIORITY
             }
+
+        override val showDebugMessages: Flow<Boolean> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.SHOW_DEBUG_MESSAGES] ?: false }
+
+        override suspend fun setShowDebugMessages(show: Boolean) {
+            dataStore.edit { preferences -> preferences[PreferencesKeys.SHOW_DEBUG_MESSAGES] = show }
+        }
 
         override val pinnedApps: Flow<Set<String>> =
             dataStore.data.map { preferences -> preferences[PreferencesKeys.PINNED_APPS] ?: emptySet() }

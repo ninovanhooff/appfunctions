@@ -103,6 +103,7 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -146,6 +147,7 @@ import java.util.Locale
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val toolTimings by viewModel.toolTimings.collectAsStateWithLifecycle()
+    val showDebugMessages by viewModel.showDebugMessages.collectAsStateWithLifecycle()
 
     CompositionLocalProvider(
         LocalA2uiActionHandler provides { name, context -> viewModel.onA2uiAction(name, context) },
@@ -154,7 +156,7 @@ fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
         AgentDemoContent(
             uiState = uiState,
             onEvent = viewModel::onEvent,
-            toolTimings = toolTimings,
+            toolTimings = if (showDebugMessages) toolTimings else emptyList(),
         )
     }
 }
@@ -1186,13 +1188,38 @@ private fun ToolTimingRow(
                 timing.packageName
             }
         }
-    Text(
-        text =
-            "$appName \u00b7 ${timing.functionId.substringAfterLast('#')} \u00b7 " +
-                formatDuration(timing.durationMillis) +
-                if (timing.succeeded) "" else " (failed)",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-    )
+    var expanded by remember { mutableStateOf(false) }
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(enabled = timing.arguments.isNotEmpty() || timing.response.isNotEmpty()) {
+                    expanded = !expanded
+                }
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text =
+                "$appName \u00b7 ${timing.functionId.substringAfterLast('#')} \u00b7 " +
+                    formatDuration(timing.durationMillis) +
+                    if (timing.succeeded) "" else " (failed)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        for (
+        (label, value) in
+        listOf("args" to timing.arguments, "response" to timing.response)
+        ) {
+            if (value.isNotEmpty()) {
+                Text(
+                    text = "$label: $value",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
 }

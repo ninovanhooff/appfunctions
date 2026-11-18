@@ -29,4 +29,8 @@ data class ToolTiming(
     val durationMillis: Long,
     val finishedAtMillis: Long,
     val succeeded: Boolean,
+    /** The arguments the model passed, one `name: value` per line. */
+    val arguments: String = "",
+    /** What the function returned, or the error it failed with. */
+    val response: String = "",
 )

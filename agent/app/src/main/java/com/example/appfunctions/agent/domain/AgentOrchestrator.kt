@@ -434,6 +434,18 @@ class AgentOrchestrator
                                 durationMillis = duration,
                                 finishedAtMillis = System.currentTimeMillis(),
                                 succeeded = executionResult !is ExecuteAppFunctionResult.Error,
+                                arguments =
+                                    nonNullArguments(toolCall.arguments).entries
+                                        .joinToString("\n") { (name, value) -> "$name: $value" },
+                                response =
+                                    when (executionResult) {
+                                        is ExecuteAppFunctionResult.Data ->
+                                            executionResult.formattedJson
+                                        is ExecuteAppFunctionResult.PendingIntentAction ->
+                                            "Pending intent: waiting for user confirmation"
+                                        is ExecuteAppFunctionResult.Error ->
+                                            executionResult.exception.toString()
+                                    },
                             )
                     ).takeLast(MAX_TIMINGS)
                 }

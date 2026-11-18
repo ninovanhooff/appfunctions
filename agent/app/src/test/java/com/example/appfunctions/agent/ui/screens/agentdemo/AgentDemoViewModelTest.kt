@@ -114,6 +114,7 @@ class AgentDemoViewModelTest {
         every { manageThreadsUseCase.getThreads() } returns threadsFlow
         every { settingsRepository.selectedProvider } returns selectedProviderFlow
         every { settingsRepository.geminiApiKey } returns geminiApiKeyFlow
+        every { settingsRepository.showDebugMessages } returns MutableStateFlow(false)
         every { llmProviderFactory.getProvider(any()) } returns llmProvider
         coEvery { llmProvider.getAvailableModels(any()) } returns listOf(testModelFlash, testModelPro)
         every { agentOrchestrator.status } returns agentStatusFlow

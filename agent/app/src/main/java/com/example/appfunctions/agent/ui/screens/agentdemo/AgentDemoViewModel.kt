@@ -46,11 +46,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -81,6 +83,13 @@ class AgentDemoViewModel
 
         /** Durations of recent AppFunction calls, shown inline in the chat. */
         val toolTimings: StateFlow<List<ToolTiming>> = agentOrchestrator.toolTimings
+
+        val showDebugMessages: StateFlow<Boolean> =
+            settingsRepository.showDebugMessages.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = false,
+            )
 
         private val installedApps = MutableStateFlow<List<AppInfo>>(emptyList())
         private val availableModels = MutableStateFlow<List<LlmModel>>(emptyList())

@@ -37,6 +37,12 @@ interface SettingsRepository {
     /** Sets the service tier requested for LLM API calls. */
     suspend fun setServiceTier(tier: ServiceTier)
 
+    /** Flow of whether AppFunction call details (duration, arguments, response) show in the chat. */
+    val showDebugMessages: Flow<Boolean>
+
+    /** Sets whether AppFunction call details show in the chat. */
+    suspend fun setShowDebugMessages(show: Boolean)
+
     /** Flow of pinned app package names. */
     val pinnedApps: Flow<Set<String>>
 
