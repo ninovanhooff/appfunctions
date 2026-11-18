@@ -142,7 +142,7 @@ class AgentOrchestrator
                             isConnected = true,
                             includeInternalTools = true,
                         ),
-                    ).first().values.flatten()
+                    ).first().values.flatten().filterNot { it.isUnrenderableConfirmation() }
 
                 runInteractionLoop(
                     message = message,
@@ -541,8 +541,16 @@ class AgentOrchestrator
             }
         }
 
+        /**
+         * Functions that return A2UI cards from a catalog this app cannot render. Offering them to
+         * the model only produces an error card in the chat.
+         */
+        private fun AppFunctionMetadata.isUnrenderableConfirmation(): Boolean =
+            id.substringAfterLast('#') in UNRENDERABLE_CONFIRMATION_FUNCTIONS
+
         private companion object {
             const val TAG = "AgentOrchestrator"
+            val UNRENDERABLE_CONFIRMATION_FUNCTIONS = setOf("fetchSendMessageDetails")
             const val MAX_TIMINGS = 100
         }
     }
