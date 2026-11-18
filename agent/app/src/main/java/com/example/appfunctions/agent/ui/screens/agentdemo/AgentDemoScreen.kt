@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
@@ -335,7 +336,16 @@ fun AgentDemoLoadedScreen(
                     }
                 } else {
                     // Messages List
+                    val listState = rememberLazyListState()
+                    // The list is reversed, so index 0 is the bottom. Scroll
+                    // there whenever a new message (or the status row) shows.
+                    val newestMessageId = uiState.messages.lastOrNull()?.messageId
+                    val showsStatus = uiState.status != AgentStatus.Idle
+                    LaunchedEffect(newestMessageId, showsStatus) {
+                        listState.animateScrollToItem(0)
+                    }
                     LazyColumn(
+                        state = listState,
                         modifier =
                             Modifier
                                 .weight(1f)
