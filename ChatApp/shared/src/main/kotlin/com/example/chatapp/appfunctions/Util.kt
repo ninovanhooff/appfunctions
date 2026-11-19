@@ -18,6 +18,7 @@ package com.example.chatapp.appfunctions
 import androidx.appfunctions.AppFunctionResourceContainer
 import androidx.appfunctions.AppFunctionSerializable
 import androidx.appfunctions.AppFunctionTextResource
+import androidx.appfunctions.AppFunctionUriGrant
 import androidx.appfunctions.ExperimentalAppFunctionsApi
 
 /**
@@ -43,6 +44,20 @@ data class ContactSearchResult(
 data class ConfirmationPreview(
     /** Exactly one A2UI resource (mimeType "application/a2ui+json"). */
     override val resources: List<AppFunctionTextResource>,
+    /** Read access for the caller to the content URIs that the card shows, such as the app logo. */
+    val uriGrants: List<AppFunctionUriGrant>,
+) : AppFunctionResourceContainer
+
+/**
+ * A card that tests which image sources a host can render, and the access the host needs for them.
+ */
+@OptIn(ExperimentalAppFunctionsApi::class)
+@AppFunctionSerializable(isDescribedByKDoc = true)
+data class ImageTestPreview(
+    /** Exactly one A2UI resource (mimeType "application/a2ui+json"). */
+    override val resources: List<AppFunctionTextResource>,
+    /** Read access for the caller to the content URIs that the card shows. */
+    val uriGrants: List<AppFunctionUriGrant>,
 ) : AppFunctionResourceContainer
 
 /**

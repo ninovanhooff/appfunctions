@@ -35,12 +35,14 @@ internal object MessageCardA2uiBuilder {
      * @param endpointValue The identifier of the recipient, sent back with the Send action.
      * @param displayName The name of the recipient.
      * @param messageBody The initial text of the message, which the user can edit.
+     * @param iconUrl The app logo shown next to the app name, such as a content URI from [AppLogo].
      * @return A JSON array of A2UI messages.
      */
     fun build(
         endpointValue: String,
         displayName: String,
         messageBody: String,
+        iconUrl: String,
     ): String {
         val surfaceId = "message_card_$endpointValue"
         val actionContext =
@@ -88,7 +90,8 @@ internal object MessageCardA2uiBuilder {
                             "theme",
                             JSONObject()
                                 .put("primaryColor", "#1A73E8")
-                                .put("agentDisplayName", "ChatApp"),
+                                .put("agentDisplayName", "ChatApp")
+                                .put("iconUrl", iconUrl),
                         ),
                 )
         val updateDataModel =

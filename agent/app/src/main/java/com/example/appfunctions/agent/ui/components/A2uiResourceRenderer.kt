@@ -18,9 +18,12 @@ package com.example.appfunctions.agent.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,7 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.domain.a2ui.A2uiPayload
 import com.example.appfunctions.agent.domain.a2ui.parseA2uiContent
@@ -83,11 +89,7 @@ fun A2uiResourceRenderer(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = payload.agentDisplayName ?: stringResource(R.string.a2ui_preview_title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SurfaceHeader(payload)
 
             if (payload.error != null) {
                 Text(
@@ -118,6 +120,33 @@ fun A2uiResourceRenderer(
                 }
             }
         }
+    }
+}
+
+/**
+ * Names the app that made the surface: its logo from `theme.iconUrl`, if any, and its display name.
+ *
+ * The logo is loaded with the same image loader as the surface's images, so it supports the same
+ * URL schemes, such as `https` and granted `content://` URIs.
+ */
+@Composable
+private fun SurfaceHeader(payload: A2uiPayload) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (payload.iconUrl != null) {
+            AsyncImage(
+                model = payload.iconUrl,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp).clip(CircleShape),
+            )
+        }
+        Text(
+            text = payload.agentDisplayName ?: stringResource(R.string.a2ui_preview_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

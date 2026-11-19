@@ -31,12 +31,14 @@ const val A2UI_MIME_TYPE = "application/a2ui+json"
  * @property messages The individual A2UI messages, each as a JSON object string.
  * @property primaryColor The brand color from `createSurface.theme`, if there is one.
  * @property agentDisplayName The display name from `createSurface.theme`, if there is one.
+ * @property iconUrl The logo URL from `createSurface.theme`, if there is one.
  * @property error A description of why the resource can't be rendered, if it can't.
  */
 data class A2uiPayload(
     val messages: List<String> = emptyList(),
     val primaryColor: String? = null,
     val agentDisplayName: String? = null,
+    val iconUrl: String? = null,
     val error: String? = null,
 )
 
@@ -104,6 +106,7 @@ fun parseA2uiContent(content: String): A2uiPayload {
         messages = elements.map { it.toString() },
         primaryColor = theme?.stringOrNull("primaryColor"),
         agentDisplayName = theme?.stringOrNull("agentDisplayName"),
+        iconUrl = theme?.stringOrNull("iconUrl"),
     )
 }
 

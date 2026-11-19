@@ -58,7 +58,7 @@ class A2uiResourceParserTest {
             [
               {"version": "v0.9", "createSurface": {
                 "surfaceId": "s", "catalogId": "c",
-                "theme": {"primaryColor": "#1A73E8", "agentDisplayName": "ChatApp"}
+                "theme": {"primaryColor": "#1A73E8", "agentDisplayName": "ChatApp", "iconUrl": "content://logo"}
               }},
               {"version": "v0.9", "updateComponents": {"surfaceId": "s", "components": []}}
             ]
@@ -72,6 +72,7 @@ class A2uiResourceParserTest {
         assertTrue(payload.messages[1].contains("updateComponents"))
         assertEquals("#1A73E8", payload.primaryColor)
         assertEquals("ChatApp", payload.agentDisplayName)
+        assertEquals("content://logo", payload.iconUrl)
     }
 
     @Test

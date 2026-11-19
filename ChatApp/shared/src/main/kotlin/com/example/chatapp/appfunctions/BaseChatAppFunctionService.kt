@@ -17,6 +17,7 @@ package com.example.chatapp.appfunctions
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.net.Uri
 import androidx.annotation.RequiresApi
 import androidx.appfunctions.AppFunctionAppUnknownException
@@ -27,6 +28,7 @@ import androidx.appfunctions.AppFunctionService
 import androidx.appfunctions.AppFunctionServiceEntryPoint
 import androidx.appfunctions.AppFunctionStringValueConstraint
 import androidx.appfunctions.AppFunctionTextResource
+import androidx.appfunctions.AppFunctionUriGrant
 import androidx.appfunctions.ExperimentalAppFunctionsApi
 import com.example.chatapp.data.CallManager
 import com.example.chatapp.data.DisplayMessage
@@ -187,7 +189,7 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
                 content = a2uiJsonPayload,
             )
 
-        return ConfirmationPreview(resources = listOf(a2uiResource))
+        return ConfirmationPreview(resources = listOf(a2uiResource), uriGrants = emptyList())
     }
 
     /**
@@ -196,7 +198,7 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
      *
      * @param endpointValue The unique identifier for the recipient or group obtained from searchContacts.
      * @param messageBody The text content of the message to send. Cannot be empty or blank.
-     * @return A [ConfirmationPreview] object containing an A2UI Basic Catalog card.
+     * @return A [ConfirmationPreview] object containing an A2UI Basic Catalog card, and read access to its app logo.
      * @throws AppFunctionInvalidArgumentException If messageBody is empty or blank. If thrown, ask the user to provide the message content to send.
      * @throws AppFunctionElementNotFoundException If no contact or group matches endpointValue. If thrown, call "searchContacts" to find the correct ID.
      */
@@ -216,14 +218,44 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
                     "No contact or group found for endpointValue: $endpointValue",
                 )
 
+        val logoUri = AppLogo.contentUri(this)
         return ConfirmationPreview(
             resources =
                 listOf(
                     AppFunctionTextResource(
                         mimeType = "application/a2ui+json",
-                        content = MessageCardA2uiBuilder.build(endpointValue, displayName, messageBody),
+                        content =
+                            MessageCardA2uiBuilder.build(
+                                endpointValue,
+                                displayName,
+                                messageBody,
+                                iconUrl = logoUri.toString(),
+                            ),
                     ),
                 ),
+            uriGrants = listOf(AppFunctionUriGrant(logoUri, FLAG_GRANT_READ_URI_PERMISSION)),
+        )
+    }
+
+    /**
+     * Fetch a test card that shows an image delivered in three ways: an https URL, a content URI,
+     * and a data URI. Use it only when the user asks to test how images render.
+     *
+     * @return An [ImageTestPreview] with an A2UI Basic Catalog card, and read access to its content URIs.
+     */
+    @OptIn(ExperimentalAppFunctionsApi::class)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
+    suspend fun fetchImageTestCard(): ImageTestPreview {
+        val card = ImageTestCardA2uiBuilder.build(this)
+        return ImageTestPreview(
+            resources =
+                listOf(
+                    AppFunctionTextResource(
+                        mimeType = "application/a2ui+json",
+                        content = card.a2uiJson,
+                    ),
+                ),
+            uriGrants = card.contentUris.map { AppFunctionUriGrant(it, FLAG_GRANT_READ_URI_PERMISSION) },
         )
     }
 
