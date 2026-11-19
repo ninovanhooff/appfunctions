@@ -37,6 +37,13 @@ data class ContactSearchResult(
 )
 
 /**
+ * The app logo that A2UI cards show next to the app name, in `createSurface.theme.iconUrl`.
+ * Hosts download it with their own image loader.
+ */
+internal const val APP_LOGO_URL =
+    "https://play-lh.googleusercontent.com/mJ9Pfjb7kxNH9AS2A1zMKw1jZwSCDpIa4BfbdxUE4yNzXAHM575UqLnJ3LrVtYiL9lkRO3W0C_5VLG3pfwed=w240-h480-rw"
+
+/**
  * Confirmation-card content for Gemini.
  */
 @OptIn(ExperimentalAppFunctionsApi::class)
@@ -44,8 +51,6 @@ data class ContactSearchResult(
 data class ConfirmationPreview(
     /** Exactly one A2UI resource (mimeType "application/a2ui+json"). */
     override val resources: List<AppFunctionTextResource>,
-    /** Read access for the caller to the content URIs that the card shows, such as the app logo. */
-    val uriGrants: List<AppFunctionUriGrant>,
 ) : AppFunctionResourceContainer
 
 /**

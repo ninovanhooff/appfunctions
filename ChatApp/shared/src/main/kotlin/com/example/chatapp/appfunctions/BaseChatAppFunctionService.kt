@@ -189,7 +189,7 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
                 content = a2uiJsonPayload,
             )
 
-        return ConfirmationPreview(resources = listOf(a2uiResource), uriGrants = emptyList())
+        return ConfirmationPreview(resources = listOf(a2uiResource))
     }
 
     /**
@@ -198,7 +198,7 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
      *
      * @param endpointValue The unique identifier for the recipient or group obtained from searchContacts.
      * @param messageBody The text content of the message to send. Cannot be empty or blank.
-     * @return A [ConfirmationPreview] object containing an A2UI Basic Catalog card, and read access to its app logo.
+     * @return A [ConfirmationPreview] object containing an A2UI Basic Catalog card.
      * @throws AppFunctionInvalidArgumentException If messageBody is empty or blank. If thrown, ask the user to provide the message content to send.
      * @throws AppFunctionElementNotFoundException If no contact or group matches endpointValue. If thrown, call "searchContacts" to find the correct ID.
      */
@@ -218,22 +218,14 @@ abstract class BaseChatAppFunctionService : AppFunctionService() {
                     "No contact or group found for endpointValue: $endpointValue",
                 )
 
-        val logoUri = AppLogo.contentUri(this)
         return ConfirmationPreview(
             resources =
                 listOf(
                     AppFunctionTextResource(
                         mimeType = "application/a2ui+json",
-                        content =
-                            MessageCardA2uiBuilder.build(
-                                endpointValue,
-                                displayName,
-                                messageBody,
-                                iconUrl = logoUri.toString(),
-                            ),
+                        content = MessageCardA2uiBuilder.build(endpointValue, displayName, messageBody),
                     ),
                 ),
-            uriGrants = listOf(AppFunctionUriGrant(logoUri, FLAG_GRANT_READ_URI_PERMISSION)),
         )
     }
 

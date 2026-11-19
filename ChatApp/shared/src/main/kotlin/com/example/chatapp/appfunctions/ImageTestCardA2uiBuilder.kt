@@ -44,9 +44,8 @@ internal object ImageTestCardA2uiBuilder {
     private const val IMAGE_FILE = "test_image.png"
     private const val IMAGE_SIZE_PX = 96
 
-    /** A public app icon on Google Play, loaded over the network. */
-    const val HTTPS_IMAGE_URL =
-        "https://play-lh.googleusercontent.com/mJ9Pfjb7kxNH9AS2A1zMKw1jZwSCDpIa4BfbdxUE4yNzXAHM575UqLnJ3LrVtYiL9lkRO3W0C_5VLG3pfwed=w240-h480-rw"
+    /** An image the host downloads over the network: the app logo. */
+    private const val HTTPS_IMAGE_URL = APP_LOGO_URL
 
     /**
      * The card and the content URI it shows.
@@ -68,7 +67,6 @@ internal object ImageTestCardA2uiBuilder {
         val png = drawTestImage()
         val contentUri = writeToCache(context, png)
         val dataUri = "data:image/png;base64," + Base64.encodeToString(png, Base64.NO_WRAP)
-        val logoUri = AppLogo.contentUri(context)
 
         val components =
             JSONArray()
@@ -97,7 +95,7 @@ internal object ImageTestCardA2uiBuilder {
                             "theme",
                             JSONObject()
                                 .put("agentDisplayName", "ChatApp")
-                                .put("iconUrl", logoUri.toString()),
+                                .put("iconUrl", APP_LOGO_URL),
                         ),
                 )
         val updateComponents =
@@ -111,7 +109,7 @@ internal object ImageTestCardA2uiBuilder {
                 )
         return Result(
             a2uiJson = JSONArray().put(createSurface).put(updateComponents).toString(),
-            contentUris = listOf(contentUri, logoUri),
+            contentUris = listOf(contentUri),
         )
     }
 
